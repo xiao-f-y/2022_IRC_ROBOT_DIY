@@ -1,13 +1,12 @@
 import time
 
-import matplotlib.pyplot as plt
 import tqdm
 import numpy as np
 
 from tool import env, plotting, utils, Node
 
 
-class Rrt:
+class RrtConnect:
     def __init__(self, start_point, end_point, step_length, sample_rate, max_iter, env_instance):
         '''
         :param start_point: start point of the robot
@@ -22,7 +21,8 @@ class Rrt:
         self.step_length = step_length
         self.sample_rate = sample_rate
         self.max_iter = max_iter
-        self.nodes = [self.st_point]  # nodes of the tree
+        self.V1 = [self.st_point]
+        self.V2 = [self.ed_point]
 
         # initialize the environment
         self.env = env_instance
@@ -42,89 +42,22 @@ class Rrt:
         self.dist = -1
 
     def planning(self):
-        '''
-        planning the path
-        :return:
-        '''
         path = None
-        convergence = False
         self.time_start = time.time()
         for i in tqdm.tqdm(range(self.max_iter)):
-            node_rand = self.generate_random_node()  # generate new node
-            node_near = self.nearest_neighbor(node_rand)  # find the nearest node of the new node in the tree
-            node_new = self.new_state(node_near,
-                                      node_rand)  # generate the new node by the direction defined by the random node
-            if node_new and not self.utils.is_collision(node_near, node_new):  # if the new node is not in collision
-                self.nodes.append(node_new)  # add the new node to the tree
-                dist, _ = self.get_distance_and_angle(node_new, self.ed_point)
-                # Termination conditions
-                # if the distance between the new node and the end node is less than the step length,
-                # then the new node can directly connect to the end node
-                if dist <= self.step_length and not self.utils.is_collision(node_new, self.ed_point):
-                    self.iter_num = i + 1
-                    node_new = self.new_state(node_new, self.ed_point)
-                    convergence = True
-                    break
+            # TODO: Implement RRT Connnect planning (Free to add your own functions)
+            pass
+
         self.time_end = time.time()
-        if convergence:
-            path = self.extract_path(node_new)
-            self.dist = self.path_distance(path)
+        # return final path
+        # implement extract_path func maybe help
+        # path = extract_path(..., ...)
+        # self.dist = self.path_distance(path)
         return path
 
-    def generate_random_node(self):
-        '''
-        generate a random node (map range as the boundary)
-        :return:
-        '''
-        delta = self.utils.delta
-
-        # uniform sample new node
-        if np.random.random() > self.sample_rate:
-            return Node((np.random.uniform(self.x_range[0] + delta, self.x_range[1] - delta),
-                         np.random.uniform(self.y_range[0] + delta, self.y_range[1] - delta)))
-        # sample end point as new node
-        return self.ed_point
-
-    def nearest_neighbor(self, n):
-        '''
-        find the nearest node in the tree
-        :param n:
-        :return:
-        '''
-        return self.nodes[int(np.argmin([np.linalg.norm([nd.x - n.x, nd.y - n.y])
-                                         for nd in self.nodes]))]
-
-    def new_state(self, node_start, node_end):
-        '''
-        generate the new node by the direction defined by the random node
-        :param node_start:
-        :param node_end:
-        :return:
-        '''
-        dist, theta = self.get_distance_and_angle(node_start, node_end)
-
-        dist = np.min([self.step_length, dist])
-        node_new = Node((node_start.x + dist * np.cos(theta),
-                         node_start.y + dist * np.sin(theta)))
-        node_new.parent = node_start
-
-        return node_new
-
-    def extract_path(self, node_end):
-        '''
-        extract the path from the end node by backtracking
-        :param node_end:
-        :return:
-        '''
-        path = [(self.ed_point.x, self.ed_point.y)]
-        node_now = node_end
-
-        while node_now.parent is not None:
-            node_now = node_now.parent
-            path.append((node_now.x, node_now.y))
-
-        return path
-
+    # TODO: Backtrack the path from the end node to the start node to get the final path
+    # def extract_path(self, ...):
+    #     pass
     def path_distance(self, path):
         '''
         get the distance of the path
@@ -136,17 +69,6 @@ class Rrt:
             dist_sum += np.linalg.norm([path[i + 1][0] - path[i][0], path[i + 1][1] - path[i][1]])
         return dist_sum
 
-    def get_distance_and_angle(self, node_start, node_end):
-        '''
-        get the distance and angle between two nodes
-        :param node_start:
-        :param node_end:
-        :return:
-        '''
-        dx = node_end.x - node_start.x
-        dy = node_end.y - node_start.y
-        return np.linalg.norm([dx, dy]), np.arctan2(dy, dx)
-
 
 def env1_planning(eval_time=1):
     x_start = (5, 5)  # st node
@@ -154,7 +76,7 @@ def env1_planning(eval_time=1):
 
     # visualization
     if eval_time == 1:
-        rrt = Rrt(x_start, x_goal, 0.5, 0.05, 10000, env.EnvOne())
+        rrt = RrtConnect(x_start, x_goal, 0.5, 0.05, 10000, env.EnvOne())
         path = rrt.planning()
         if not path:
             print("No Path Found!")
@@ -169,7 +91,7 @@ def env1_planning(eval_time=1):
     iter_sum = list()
     dist_sum = list()
     for i in range(eval_time):
-        rrt = Rrt(x_start, x_goal, 0.5, 0.05, 10000, env.EnvOne())
+        rrt = RrtConnect(x_start, x_goal, 0.5, 0.05, 10000, env.EnvOne())
         path = rrt.planning()
         if not path:
             print("No Path Found!")
@@ -198,7 +120,7 @@ def env2_planning(eval_time=1):
 
     # visualization
     if eval_time == 1:
-        rrt = Rrt(x_start, x_goal, 0.5, 0.2, 10000, env.EnvTwo())
+        rrt = RrtConnect(x_start, x_goal, 0.5, 0.2, 10000, env.EnvTwo())
         path = rrt.planning()
         if not path:
             print("No Path Found!")
@@ -213,7 +135,7 @@ def env2_planning(eval_time=1):
     iter_sum = list()
     dist_sum = list()
     for i in range(eval_time):
-        rrt = Rrt(x_start, x_goal, 0.5, 0.2, 10000, env.EnvTwo())
+        rrt = RrtConnect(x_start, x_goal, 0.5, 0.2, 10000, env.EnvTwo())
         path = rrt.planning()
         if not path:
             print("No Path Found!")
@@ -242,7 +164,7 @@ def env3_planning(eval_time=1):
 
     # visualization
     if eval_time == 1:
-        rrt = Rrt(x_start, x_goal, 0.5, 0.2, 10000, env.EnvThree())
+        rrt = RrtConnect(x_start, x_goal, 0.5, 0.2, 10000, env.EnvThree())
         path = rrt.planning()
         if not path:
             print("No Path Found!")
@@ -256,7 +178,7 @@ def env3_planning(eval_time=1):
     iter_sum = list()
     dist_sum = list()
     for i in range(eval_time):
-        rrt = Rrt(x_start, x_goal, 0.5, 0.2, 10000, env.EnvThree())
+        rrt = RrtConnect(x_start, x_goal, 0.5, 0.2, 10000, env.EnvThree())
         path = rrt.planning()
         if not path:
             print("No Path Found!")
