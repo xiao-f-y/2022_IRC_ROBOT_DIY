@@ -23,6 +23,8 @@
 
 - Python 入门 from CS224N https://web.stanford.edu/class/cs224n/readings/cs224n-python-review.pdf
 
+- Python 编程风格规范（Google）https://zh-google-styleguide.readthedocs.io/en/latest/google-python-styleguide/python_style_rules/
+
 ## 二、环境配置
 
 本章节，我们将安装配置 Python 开发环境，IDE 及框架所需依赖、
@@ -183,8 +185,6 @@ Algorithm RRT:
  					 		continue
  			 		 T.add_vertex(x_new)
            if not colision(x_new, ed):
-           		 x_new = new_state(x_new, ed)
-		           T.add_vertex(x_new)
 		           T.add_vertex(ed)
 		           break
 return T
@@ -194,7 +194,7 @@ return T
 2. 从搜索树 $T$ 中找出距离采样点 $x_{rand}$ 最近的节点 $x_{near}$
 3. 根据步长参数以及 $x_{rand}$ 与 $x_{near}$ 之间距离 ，产生新的拓展点 $x_{new}$
 4. 如果 $x_{new}$ 和 $x_{near}$ 间存在直线通路（无碰撞）, 则将 $x_{new}$ 加入到搜索树 $T$ 中，且它的父节点为 $x_{near}$; 否则进入下一轮迭代
-5. 若新加入的点 $x_{new}$ 与终点 ed 间距离小于步长且二者间不存在碰撞 (说明二者间可直线连接，已发现从起点到终点路径)，则向终点方向再次生成一个新点并添加到树中，最后添加终点 ed，算法终止
+5. 若新加入的点 $x_{new}$ 与终点 ed 间距离小于步长且二者间不存在碰撞 (说明二者间可直线连接，已发现从起点到终点路径)，则路径探索结束，最后添加终点 ed 到路径中，算法终止
 
 在 baseline_rrt.py 中，基本上是根据上述伪代码进行了实现并添加了注释，请同学们参照算法描述进一步理解代码，并完成相应任务
 

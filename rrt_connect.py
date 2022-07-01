@@ -49,6 +49,7 @@ class RrtConnect:
             pass
 
         self.time_end = time.time()
+        self.iter_num = i + 1
         # return final path
         # implement extract_path func maybe help
         # path = extract_path(..., ...)
@@ -84,7 +85,7 @@ def env1_planning(eval_time=1):
         print("Iteration:", rrt.iter_num)
         if path:
             print("Distance:{:.3f}".format(rrt.dist))
-        rrt.plotting.animation(rrt.nodes, path, "RRT_ENV1", True)
+        rrt.plotting.animation_connect(rrt.V1, rrt.V2, path, "RRT_CONNECT_ENV1")
         return
     # evaluation
     time_sum = list()
@@ -128,7 +129,7 @@ def env2_planning(eval_time=1):
         print("Iteration:", rrt.iter_num)
         if path:
             print("Distance:{:.3f}".format(rrt.dist))
-        rrt.plotting.animation(rrt.nodes, path, "RRT_ENV2", True)
+        rrt.plotting.animation(rrt.V1, rrt.V2, path, "RRT_CONNECT_ENV2")
         return
     # evaluation
     time_sum = list()
@@ -171,7 +172,7 @@ def env3_planning(eval_time=1):
         print("Time: {:.3f} s".format(rrt.time_end - rrt.time_start))
         print("Iteration:", rrt.iter_num)
         print("Distance:{:.3f}".format(rrt.dist))
-        rrt.plotting.animation(rrt.nodes, path, "RRT_ENV3", True)
+        rrt.plotting.animation(rrt.V1, rrt.V2, path, "RRT_CONNECT_ENV3")
         return
     # evaluation
     time_sum = list()

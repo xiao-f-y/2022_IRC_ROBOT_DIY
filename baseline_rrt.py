@@ -62,7 +62,6 @@ class Rrt:
                 # then the new node can directly connect to the end node
                 if dist <= self.step_length and not self.utils.is_collision(node_new, self.ed_point):
                     self.iter_num = i + 1
-                    node_new = self.new_state(node_new, self.ed_point)
                     convergence = True
                     break
         self.time_end = time.time()
