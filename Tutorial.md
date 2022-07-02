@@ -23,8 +23,6 @@
 
 - Python 入门 from CS224N https://web.stanford.edu/class/cs224n/readings/cs224n-python-review.pdf
 
-- Python 编程风格规范（Google）https://zh-google-styleguide.readthedocs.io/en/latest/google-python-styleguide/python_style_rules/
-
 ## 二、环境配置
 
 本章节，我们将安装配置 Python 开发环境，IDE 及框架所需依赖、
@@ -185,6 +183,8 @@ Algorithm RRT:
  					 		continue
  			 		 T.add_vertex(x_new)
            if not colision(x_new, ed):
+           		 x_new = new_state(x_new, ed)
+		           T.add_vertex(x_new)
 		           T.add_vertex(ed)
 		           break
 return T
@@ -194,7 +194,7 @@ return T
 2. 从搜索树 $T$ 中找出距离采样点 $x_{rand}$ 最近的节点 $x_{near}$
 3. 根据步长参数以及 $x_{rand}$ 与 $x_{near}$ 之间距离 ，产生新的拓展点 $x_{new}$
 4. 如果 $x_{new}$ 和 $x_{near}$ 间存在直线通路（无碰撞）, 则将 $x_{new}$ 加入到搜索树 $T$ 中，且它的父节点为 $x_{near}$; 否则进入下一轮迭代
-5. 若新加入的点 $x_{new}$ 与终点 ed 间距离小于步长且二者间不存在碰撞 (说明二者间可直线连接，已发现从起点到终点路径)，则路径探索结束，最后添加终点 ed 到路径中，算法终止
+5. 若新加入的点 $x_{new}$ 与终点 ed 间距离小于步长且二者间不存在碰撞 (说明二者间可直线连接，已发现从起点到终点路径)，则最后添加终点到树中，算法终止
 
 在 baseline_rrt.py 中，基本上是根据上述伪代码进行了实现并添加了注释，请同学们参照算法描述进一步理解代码，并完成相应任务
 
@@ -277,9 +277,54 @@ Baseline
 为此，在 2006 年，Karaman et al.[2006] 提出了 RRT* 算法，该算法主要流程与 RRT 一致，但做出了以下更改
 
 - 更改最近点选择策略
-- 在加入新点后重新调整树的拓扑，降低 cost（距离）
+即重新选择父节点：在新产生的节点 $x_{new}$ 附近以定义的半径范围内寻找“近邻”，作为替换 $x_{new}$ 父节点的备选。依次计算“近邻”节点到起点的路径代价加上 $x_{new}$ 到每个“近邻”的路径的代价，把代价最小的点作为新的父节点。
+例如，如下图所示，搜索多个节点去作为new的父节点，看看通过哪个节点到达start最短。在本图中new-near-start是最短的，new-x1-near-start和new-x2-near-start均比第一条路长。
 
->  TODO: 增进算法描述，伪代码等资料（瑞安，浩浩）
+<img src="assets/rrtxing_1.png" alt="rrtxing_1" style="zoom:50%;" />
+
+- 在加入新点后重新调整树的拓扑，降低 cost（距离）
+如果近邻节点的父节点改为 $x_{new}$ 可以减小路径代价，则进行更改。
+例如，如下图所示，对于x1来讲，start-near-x1比start-near-new-x1的距离短，所以x1的父节点是near，不用修改；对于x2来讲，start-near-x1-x2比start-near-new-x2的距离长，所以修改x2的父节点为new。
+
+<img src="assets/rrtxing_2.png" alt="rrtxing_2" style="zoom:50%;" />
+
+
+伪代码如下所示:
+
+```
+Algorithm RRT*:
+			 Input: start point st, end point ed
+ 	     Output: tree T
+ 	     
+ 	     T.init(st) // leverage st as the root node
+ 	     for iter = 1 to max_iter do
+ 					 x_rand = generate_random_node()
+ 					 x_near = find_nearest_node(x_rand, T)
+ 					 x_new = new_state(x_near, x_rand)
+
+           x_nearneighbor = findnear_neighbor(T, x_new, r)
+           if obstaclefree(x_new, T, r) then
+             T.Chooseparent(x_new, x_nearneighbor, T);
+               for each x_nearneighbor calculate(dist(x_new, x_nearneighbor) + cost(x_nearneighbor, x_init))
+               x_near-neighbor-mincost=min(dist(x_new,x_near-neighbor )+cost(x_near-neighbor, x_init))
+               x_new_parent=x_near-neighbor-mincost
+               return x_new_parent ;
+
+             T.rewire(T,x_new, x_near_neighbor )
+               for each x_near_neighbor calculate(dist(x_near_neighbor, x_new)+cost(x_new，x_init))
+               x_new_mincost=min(dist(x_near_neighbor, x_new)+cost(x_new, x_init))
+               x_near_neighbor_newparent=x_new_mincost
+               return x_near_neighbor_newparent 
+
+return T
+```
+
+1. 在自由空间中随机采样得到采样点 $x_{rand}$
+2. 从搜索树 $T$ 中找出距离采样点 $x_{rand}$ 最近的节点 $x_{near}$
+3. 根据步长参数以及 $x_{rand}$ 与 $x_{near}$ 之间距离 ，产生新的拓展点 $x_{new}$
+4. 以 $x_{new}$ 更改父节点，并且重新进行拓扑操作
+5. 上述两操作完成后进入下一轮迭代
+6. 若新加入的点 $x_{new}$ 与终点 ed 间距离小于步长且二者间不存在碰撞 (说明二者间可直线连接，已发现从起点到终点路径)，则最后添加终点到树中，算法终止
 
 虽然 RRT* 算法的路径结果更优，但是 RRT* 的收敛时间相应地也增长了不少
 
