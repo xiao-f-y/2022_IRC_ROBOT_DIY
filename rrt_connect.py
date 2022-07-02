@@ -2,7 +2,7 @@ import time
 
 import tqdm
 import numpy as np
-
+import math
 from tool import env, plotting, utils, Node
 
 
@@ -46,19 +46,117 @@ class RrtConnect:
         self.time_start = time.time()
         for i in tqdm.tqdm(range(self.max_iter)):
             # TODO: Implement RRT Connnect planning (Free to add your own functions)
-            pass
+             node_rand = self.generate_random_node(self.ed_point, self.sample_rate)
+             node_near = self.nearest_neighbor(self.V1, node_rand)
+             node_new = self.new_state(node_near, node_rand)
 
-        self.time_end = time.time()
-        self.iter_num = i + 1
+             if node_new and not self.utils.is_collision(node_near, node_new):
+                self.iter_num = i + 1
+                self.V1.append(node_new)
+                node_near_prim = self.nearest_neighbor(self.V2, node_new)
+                node_new_prim = self.new_state(node_near_prim, node_new)
+
+                if node_new_prim and not self.utils.is_collision(node_new_prim, node_near_prim):
+                    self.V2.append(node_new_prim)
+
+                    while True:
+                        node_new_prim2 = self.new_state(node_new_prim, node_new)
+                        if node_new_prim2 and not self.utils.is_collision(node_new_prim2, node_new_prim):
+                            self.V2.append(node_new_prim2)
+                            node_new_prim = self.change_node(node_new_prim, node_new_prim2)
+                        else:
+                            break
+
+                        if self.is_node_same(node_new_prim, node_new):
+                            break
+
+                if self.is_node_same(node_new_prim, node_new):
+                    self.time_end = time.time()
+                    
+                    path=self.extract_path(node_new, node_new_prim)
+                    self.dist = self.path_distance(path)
+                    #return self.extract_path(node_new, node_new_prim)
+                    break
+
+             if len(self.V2) < len(self.V1):
+                list_mid = self.V2
+                self.V2 = self.V1
+                self.V1 = list_mid
+
+
+        
+        
         # return final path
         # implement extract_path func maybe help
         # path = extract_path(..., ...)
         # self.dist = self.path_distance(path)
         return path
+    def change_node(self,node_new_prim, node_new_prim2):
+        node_new = Node((node_new_prim2.x, node_new_prim2.y))
+        node_new.parent = node_new_prim
 
+        return node_new
+
+    def is_node_same(self,node_new_prim, node_new):
+        if node_new_prim.x == node_new.x and \
+                node_new_prim.y == node_new.y:
+            return True
+
+        return False
+
+    def generate_random_node(self, sample_goal, goal_sample_rate):
+        delta = self.utils.delta
+
+        if np.random.random() > goal_sample_rate:
+            return Node((np.random.uniform(self.x_range[0] + delta, self.x_range[1] - delta),
+                         np.random.uniform(self.y_range[0] + delta, self.y_range[1] - delta)))
+
+        return sample_goal
+
+
+    def nearest_neighbor(self,node_list, n):
+        return node_list[int(np.argmin([math.hypot(nd.x - n.x, nd.y - n.y)
+                                        for nd in node_list]))]
+
+    def new_state(self, node_start, node_end):
+        dist, theta = self.get_distance_and_angle(node_start, node_end)
+
+        dist = min(self.step_length, dist)
+        node_new = Node((node_start.x + dist * math.cos(theta),
+                         node_start.y + dist * math.sin(theta)))
+        node_new.parent = node_start
+
+        return node_new
+
+
+    def extract_path(self,node_new, node_new_prim):
+        path1 = [(node_new.x, node_new.y)]
+        node_now = node_new
+
+        while node_now.parent is not None:
+            node_now = node_now.parent
+            path1.append((node_now.x, node_now.y))
+
+        path2 = [(node_new_prim.x, node_new_prim.y)]
+        node_now = node_new_prim
+
+        while node_now.parent is not None:
+            node_now = node_now.parent
+            path2.append((node_now.x, node_now.y))
+
+        return list(list(reversed(path1)) + path2)
+
+
+    def get_distance_and_angle(self,node_start, node_end):
+        dx = node_end.x - node_start.x
+        dy = node_end.y - node_start.y
+        return math.hypot(dx, dy), math.atan2(dy, dx)
     # TODO: Backtrack the path from the end node to the start node to get the final path
     # def extract_path(self, ...):
     #     pass
+    
+    
+    
     def path_distance(self, path):
         '''
         get the distance of the path
